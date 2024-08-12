@@ -221,10 +221,11 @@ function enter(){
 		if(s) keys[guess[i].charCodeAt()-97].classList.add('zot'[s])
 		r2 = Math.floor(r2/3); i++
 	}
+	guess = ''
 	if(r == 242){
 		// win
 		setTimeout(() => statusTxt.textContent = 'You win! Click anywhere to play again', 1500)
-		activeGuess = null
+		activeGuess = active = null
 		return
 	}
 	activeGuess = activeGuess.nextSibling
@@ -235,10 +236,9 @@ function enter(){
 		return
 	}
 	active = activeGuess.children[0]
-	guess = ''
 }
 guesses.onclick = statusTxt.onclick = keyboard.onclick = () => {
-	if(activeGuess) return
+	if(activeGuess || !statusTxt.textContent) return
 	activeGuess = guesses.children[0]
 	for(const g of guesses.children) for(const n of g.children) n.textContent = '', n.className = 'letter'
 	guess = ''; wi = words.slice(0); statusTxt.textContent = ''
