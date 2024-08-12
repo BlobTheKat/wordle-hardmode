@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+	<link rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAG2SURBVHgB7VdRS8JQFD5KOlAHQ1PIl274VC8t8AfYcy/9h35B74EFvfcL+g350rP+gxZE0dMuBEmMwZhpbBbrnE0hKK83cjNhH5ydq373nE+38+HNQAQdoz3JScDAOMbgGbwwjBsNoeuz+xuGAY7jQKvVAmFlCV6v16PkYOzT4gojME0zEAELBoyxYB5keNQLv2+AfTtZvOikFjdBUqBejUaDfoHdLCwJqqpqlJcmYIpUQCqAjMiEcDKYkEjmQvEXXi6X49O1ZVkMeXyNXqApzC1MDkdYL9lCnm2NwuwXvW+f+eCx6frNj3ihALLgbrcrLNxsNp3+0512eb4t5B2dPMDjSwCH7QMhr3N6Dc/3fflnwHVdp17Lw6KRTkEsApSiIs2NRUC+KP+srM4tGI/HDGKAtBNyzsNcr4nv72D4gfEOalUV8vyhB97Ij5xQKSg/OtdXKIU8bQColsWFXyOnVGslIc82o36hgMpWWcq5BtZgobxfOWFcSAWkAv6FAMPmNrg4OkmBxpRGEHFLTkgnUvo7pNV3NmZuIpHkm5XNirC4DI84aGp0NNvLTN5jGBeQ7PH8jPInf/8II4/hHBcAAAAASUVORK5CYII=" />
+	<title>Wordle</title>
+</head>
+<body style="margin:0;font-family: Franklin;user-select: none;-webkit-user-select: none;">
+	<div id="title">Wordle</div>
+	<div id="guesses"></div>
+	<div id="statusTxt"></div>
+	<div id="keyboard"><div></div><div></div><div></div></div>
+</body>
+<style>
+@font-face {
+	font-family: Franklin;
+	src: url(./LibreFranklin-Bold.ttf);
+}
+*{ box-sizing: border-box; }
+#title{
+	font-size: 48px;
+	padding: 20px 0;
+	text-align: center;
+	position: relative;
+	color: #222;
+}
+#title:after{
+	content: 'Wordle';
+	color: white;
+	background: #222;
+	clip-path: polygon(0 0, 0 100%, 100% 0);
+	padding: 20px 0;
+	position: absolute;
+	inset: 0;
+}
+#guesses{
+	width: 330px;
+	margin: 0 auto;
+	display: flex;
+	flex-flow: column;
+	gap: 5px;
+}
+#statusTxt{
+	text-align: center;
+	font-size: 20px;
+	margin: 20px 0;
+	white-space: pre-wrap;
+	height: 48px;
+}
+@keyframes bump{
+	0%{transform: scale(1)}
+	50%{transform: scale(1.1)}
+	100%{transform: scale(1)}
+}
+@keyframes flip{
+	0%{transform: scale(1);}
+	49.999%{transform: scaleY(0);background:none;border: 2px #8888 solid;color:black;}
+	50%{transform: scaleY(0);background:var(--bg);border:none;color:white;}
+	100%{transform: scaleY(1);background:var(--bg);border:none;color:white;}
+}
+@keyframes shake{
+	0%{transform:translateX(0)}
+	10%{transform:translateX(6px)}
+	30%{transform:translateX(-6px)}
+	50%{transform:translateX(6px)}
+	70%{transform:translateX(-6px)}
+	90%{transform:translateX(6px)}
+	100%{transform:translateX(0)}
+}
+.guess{
+	width: 100%; height: 62px;
+	display: flex;
+	flex-flow: row;
+	gap: inherit;
+}
+.letter{
+	--and: 0s;
+	width: 62px;
+	border: 2px #8888 solid;
+	line-height: 62px;
+	font-size: 32px;
+	text-align: center;
+}
+.letter:nth-child(2){ --and: 0.25s; } .letter:nth-child(3){ --and: 0.5s; } .letter:nth-child(4){ --and: 0.75s; } .letter:nth-child(5){ --and: 1s; }
+.letter.z, .letter.o, .letter.t{ animation: flip .5s var(--and) linear both !important; }
+.letter.z{--bg: #888;} .letter.o{--bg: #da0;} .letter.t{--bg: #490;}
+.letter:not(:empty){ border-color: #888; animation: bump .1s linear; }
+
+#keyboard{
+	display: flex;
+	flex-flow: column;
+	gap: 5px;
+}
+#keyboard > div{
+	display: flex;
+	justify-content: center;
+	gap: inherit;
+	height: 40px;
+}
+.key{
+	background-color: #888c;
+	border-radius: 3px;
+	color: white; width: 28px;
+	text-align: center; line-height: 40px;
+	cursor: pointer;
+}
+.key.o{background-color: #da0c; transition: background-color 0s 1.5s;}
+.key.t{background-color: #490c; transition: background-color 0s 1.5s;}
+.key:active{ transform: translateY(3px) }
+</style>
+<script type="module">
+// seria, manly, octad, quawk, abuzz
+const w2i = w => w.charCodeAt(0)-97|w.charCodeAt(1)-97<<5|w.charCodeAt(2)-97<<10|w.charCodeAt(3)-97<<15|w.charCodeAt(4)-97<<20
+const i2w = i => String.fromCharCode(97+(i&31),97+(i>>5&31),97+(i>>10&31),97+(i>>15&31),97+(i>>20&31))
+const words = (await fetch('answers.txt').then(a=>a.text())).split('\n').map(w2i)
+let v2 = new Set((await fetch('words.txt').then(a=>a.text())).split('\n').map(w2i))
+for(const w of words) v2.delete(w)
+const vwords = [...words, ...v2]
+let wi = words.slice(0)
+const scores = []; for(let i=0;i<243;i++) scores.push([])
+function rate(guess, word){
+	let r = 0
+	for(let i=0;i<25;i+=5){
+		r <<= 2; const l = guess>>i&31
+		if(l==(word>>i&31)) r|=2,word|=31<<i
+		else for(let j=0;j<25;j+=5){const l2=word>>j&31;if(l==l2&&l2!=(guess>>j&31)){r|=1;word|=31<<j;break}}
+	}
+	return (r>>8)+(r>>6&3)*3+(r>>4&3)*9+(r>>2&3)*27+(r&3)*81
+}
+function filter(guess){
+	for(let i=0;i<243;i++) scores[i].length = 0
+	for(const w of wi) scores[rate(guess, w)].push(w)
+	let highest = 0, hl = [], hs = -1
+	for(let i=0;i<243;i++){
+		const l = scores[i]
+		if(l.length > highest) highest = l.length, hl = l, hs = i
+	}
+	wi = hl.slice(0)
+	return hs
+}
+
+globalThis.engine = function(...a){
+	let ws = wi, wj = wi = words
+	let log = console.info
+	if(typeof a[0] == 'function') log=a.shift()
+	if(typeof a[0] == 'object') wj=wi=a.shift()
+	let tries = 0
+	for(let i = 0; i < a.length; i += 2){
+		tries++
+		wi = []
+		const n = a[i+1]||'00000'
+		let tst = w2i(a[i]), r = typeof n == 'number' ? n : +n[0]+n[1]*3+n[2]*9+n[3]*27+n[4]*81
+		for(const w of wj) if(rate(tst, w) == r) wi.push(w)
+		wj = wi
+		log(a[i],wi.length)
+	}
+	while(wi.length>1){
+		tries++
+		let best = Infinity, bw=0
+		for(const w of vwords) filter(w), wi.length<best&&(best=wi.length,bw=w),wi=wj
+		log(i2w(bw), best)
+		filter(bw), wj=wi
+	}
+	wi = ws
+	return {solution: i2w(wj[0]), tries}
+}
+engine.possibilities = () => wi.map(i2w)
+engine.now = function(){
+	if(wi.length < 3) return i2w(wi[0])
+	let wj = wi
+	let best = Infinity, bw=0
+	for(const w of vwords) filter(w), wi.length<best&&(best=wi.length,bw=w),wi=wj
+	filter(bw)
+	wi = wj
+	return i2w(bw)
+}
+
+for(let i=0;i<5;i++){
+	const n = document.createElement('div')
+	n.className = 'guess'
+	for(let i=0;i<5;i++){
+		const n2 = document.createElement('div')
+		n2.className = 'letter'
+		n.append(n2)
+	}
+	guesses.append(n)
+}
+let active = guesses.children[0].children[0]
+let activeGuess = active.parentElement
+let guess = ''
+function putLetter(l){
+	if(guess.length >= 5) return
+	const c = String.fromCharCode(97+l)
+	guess += c
+	active.textContent = c.toUpperCase()
+	active = active.nextSibling
+}
+function back(){
+	if(!guess) return
+	guess = guess.slice(0, -1)
+	active = active ? active.previousSibling : activeGuess.lastChild
+	active.textContent = ''
+}
+function enter(){
+	if(guess.length < 5) return
+	let g = w2i(guess)
+	activeGuess.style.animation = ''
+	if(!vwords.includes(g)){
+		activeGuess.offsetHeight
+		activeGuess.style.animation = 'shake 0.2s linear both'
+		statusTxt.textContent = 'Not an english word'
+		return
+	}
+	statusTxt.textContent = ''
+	const r = filter(g); let r2 = r
+	let i = 0
+	for(const c of activeGuess.children){
+		const s = r2%3
+		c.classList.add('zot'[s])
+		if(s) keys[guess[i].charCodeAt()-97].classList.add('zot'[s])
+		r2 = Math.floor(r2/3); i++
+	}
+	if(r == 242){
+		// win
+		setTimeout(() => statusTxt.textContent = 'You win! Click anywhere to play again', 1500)
+		activeGuess = null
+		return
+	}
+	activeGuess = activeGuess.nextSibling
+	if(!activeGuess){
+		// lose
+		const w = i2w(wi[Math.floor(Math.random() * wi.length)]).toUpperCase()
+		setTimeout(() => statusTxt.textContent = 'You Lost. The word was '+w+'\nClick anywhere to play again', 1500)
+		return
+	}
+	active = activeGuess.children[0]
+	guess = ''
+}
+guesses.onclick = statusTxt.onclick = keyboard.onclick = () => {
+	if(activeGuess) return
+	activeGuess = guesses.children[0]
+	for(const g of guesses.children) for(const n of g.children) n.textContent = '', n.className = 'letter'
+	guess = ''; wi = words.slice(0); statusTxt.textContent = ''
+	active = activeGuess.children[0]
+	for(const n of keys) n.className = 'key'
+}
+document.onkeydown = e => {
+	if(e.keyCode == 13) enter()
+	else if(e.keyCode == 8) back()
+	else{
+		let k = (e.keyCode&-33)-65 & 0x7fff
+		if(k < 26) putLetter(k)
+	}
+}
+const keys = []
+function makeKey(k){
+	const n = document.createElement('div')
+	n.className = 'key'
+	if(k == '0'){
+		n.textContent = 'Enter'
+		n.onclick = enter
+		n.style.width = '54px'
+	}else if(k === '1'){
+		n.textContent = '⌫'
+		n.onclick = back
+		n.style.width = '35px'
+	}else{
+		n.textContent = k
+		const code = k.charCodeAt()-65
+		keys[code] = n
+		n.onclick = putLetter.bind(null, code)
+	}
+	return n
+}
+for(const k of 'QWERTYUIOP') keyboard.children[0].append(makeKey(k))
+for(const k of 'ASDFGHJKL') keyboard.children[1].append(makeKey(k))
+for(const k of '1ZXCVBNM0') keyboard.children[2].append(makeKey(k))
+</script>
+</html>
