@@ -219,8 +219,8 @@ function enter(){
 	for(const c of activeGuess.children){
 		const s = r2%3
 		c.classList.add('zot'[s])
-		if(s) keys[guess[i].charCodeAt()-97].classList.add('zot'[s])
-		r2 = Math.floor(r2/3); i++
+		keys[guess[i++].charCodeAt()-97].classList.add('zot'[s])
+		r2 = Math.floor(r2/3)
 	}
 	guess = ''
 	if(r == 242){
