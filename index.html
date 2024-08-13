@@ -17,7 +17,7 @@
 	font-family: Franklin;
 	src: url(./LibreFranklin-Bold.ttf);
 }
-*{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
+*{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-y; }
 #title{
 	font-size: 48px;
 	padding: 20px 0;
@@ -140,7 +140,6 @@ function filter(guess){
 	wi = hl.slice(0)
 	return hs
 }
-
 globalThis.engine = function(...a){
 	let ws = wi, wj = wi = words
 	let log = console.info
@@ -149,18 +148,28 @@ globalThis.engine = function(...a){
 	let tries = 0
 	for(let i = 0; i < a.length; i += 2){
 		tries++
-		wi = []
-		const n = a[i+1]||'00000'
-		let tst = w2i(a[i]), r = typeof n == 'number' ? n : +n[0]+n[1]*3+n[2]*9+n[3]*27+n[4]*81
-		for(const w of wj) if(rate(tst, w) == r) wi.push(w)
-		wj = wi
-		log(a[i],wi.length)
+		const n = a[i+1]
+		let r = 0
+		if(n == null){
+			r = filter(w2i(a[i]))
+			wj = wi
+		}else{
+			wi = []
+			let tst = w2i(a[i]); r = typeof n == 'number' ? n : +n[0]+n[1]*3+n[2]*9+n[3]*27+n[4]*81
+			for(const w of wj) if(rate(tst, w) == r) wi.push(w)
+			wj = wi
+		}
+		if(log(a[i],wi.length,r)) return wi=ws, {solution: null, tries}
 	}
 	while(wi.length>1){
 		tries++
-		let best = Infinity, bw=0
-		for(const w of vwords) filter(w), wi.length<best&&(best=wi.length,bw=w),wi=wj
-		log(i2w(bw), best)
+		let best = Infinity, bw=0, br = 0
+		for(const w of vwords){
+			const r = filter(w)
+			if(wi.length<best) best=wi.length,bw=w, br = r
+			wi=wj
+		}
+		if(log(i2w(bw), best, br)) return wi=ws, {solution: null, tries}
 		filter(bw), wj=wi
 	}
 	wi = ws
