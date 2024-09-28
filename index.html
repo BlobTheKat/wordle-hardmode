@@ -183,13 +183,11 @@ globalThis.engine = function(...a){
 }
 engine.possibilities = () => wi.map(i2w)
 engine.now = function(){
-	if(wi.length < 3) return i2w(wi[0])
+	if(wi.length < 3) return wi.map(i2w)
 	let wj = wi
-	let best = Infinity, bw=0
-	for(const w of vwords) filter(w), wi.length<best&&(best=wi.length,bw=w),wi=wj
-	filter(bw)
-	wi = wj
-	return i2w(bw)
+	let best = Infinity, bw=[]
+	for(const w of vwords) filter(w), wi.length<best?(best=wi.length,bw.length=1,bw[0]=w):wi.length==best?bw.push(w):0,wi=wj
+	return bw.map(i2w)
 }
 
 for(let i=0;i<5;i++){
